@@ -13,6 +13,27 @@ Install from [npm](http://npmjs.org)
 ```
 npm install node-red-contrib-scx-ibmiotapp
 ```
+-------
+Supported Features
+------------------
+
+| Feature   |      Supported?      | Description |
+|----------|:-------------:|:-------------|
+| [Application connectivity](https://github.com/ibm-watson-iot/node-red-contrib-scx-ibmiotapp) |    &#10004;   | Connect your application(s) to Watson IoT Platform with ease using this library. [Click here](https://developer.ibm.com/recipes/tutorials/deploy-watson-iot-node-on-raspberry-pi/) for detailed information on how applications can subscribe to device events and publish commands to devices.|
+| [SSL/TLS support](https://console.ng.bluemix.net/docs/services/IoT/reference/security/index.html) | &#10004; | By default, this library connects your applications **securely** to Watson IoT Platform registered service. Ports 8883(default one) and 443 support secure connections using TLS with the MQTT and HTTP protocol. Also, note that the library uses port 1883(unsecured) to connect to the Quickstart service.|
+| [Client side Certificate based authentication](https://console.ng.bluemix.net/docs/services/IoT/reference/security/RM_security.html) | &#10004; | Default connections between devices and the platform use either the Certificates Only or Certificates with Authentication Tokens security levels.|
+| [Auto reconnect](https://console.ng.bluemix.net/docs/services/IoT/devices/libraries/nodejs.html#connecting_to_iotp) | &#10004; | Enables device and gateway to automatically reconnect to Watson IoT Platform while they are in a disconnected state. [Further details here](https://console.ng.bluemix.net/docs/services/IoT/devices/libraries/nodejs.html#connecting_to_iotp). |
+| [Multi-format support](https://github.com/ibm-watson-iot/node-red-contrib-scx-ibmiotapp)| &#10004; | JSON, Buffer, Number String, Boolean and Other types. |
+
+
+Feature(s) that are expected to be supported, shortly
+------------------
+
+| Feature   |      Supported?      | Description |
+|----------|:-------------:|:-------------|
+| Websocket | &#10008; | Currently not supported. |
+
+-------
 
 Usage
 -------
