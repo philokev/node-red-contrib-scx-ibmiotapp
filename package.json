@@ -14,7 +14,11 @@
         "keywords": [
                 "node-red",
                 "bluemix",
-                "iotcloud"
+                "iotcloud",
+                "watsoniot",
+                "watson",
+                "iot",
+                "platform"
         ],
         "readmeFilename": "README.md",
         "repository": {
