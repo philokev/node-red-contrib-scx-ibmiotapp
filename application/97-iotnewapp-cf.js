@@ -33,7 +33,12 @@ module.exports = function(RED) {
 	var userServices = services['iotf-service-staging'];
 
 	if(userServices === null || userServices === undefined) {
-		userServices = services	['iotf-service'];
+		for (var i in services) {
+        // filter for iotf-service services
+        if (i.match(/^(iotf-service)/i)) {
+            userServices = services[i];
+        }
+    }
 	}
 
 	if(userServices === null || userServices === undefined) {
@@ -187,7 +192,7 @@ module.exports = function(RED) {
 				node.error("Unable to retrieve the organization from API Key");
 			}
 	//		node.brokerHost = node.organization + ".messaging.staging.test.internetofthings.ibmcloud.com";
-			if(node.serverName === 'undefined' || node.serverName === null 
+			if(node.serverName === 'undefined' || node.serverName === null
 				|| typeof node.serverName === 'undefined' || node.serverName === "") {
 				node.brokerHost = node.organization + ".messaging.internetofthings.ibmcloud.com";
 			} else {

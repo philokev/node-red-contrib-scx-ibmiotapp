@@ -10,7 +10,7 @@
                 "ibmiotf": "^0.2.31",
                 "is-utf8": "^0.2.1"
         },
-        "version": "0.0.46",
+        "version": "0.0.47",
         "keywords": [
                 "node-red",
                 "bluemix",
@@ -23,7 +23,7 @@
         "readmeFilename": "README.md",
         "repository": {
                 "type": "git",
-                "url": "https://github.com/ibm-messaging/iot-nodered/tree/master/node-red-contrib-scx-ibmiotapp"
+                "url": "https://github.com/ibm-watson-iot/node-red-contrib-scx-ibmiotapp"
         },
         "license": "Apache",
         "node-red": {
