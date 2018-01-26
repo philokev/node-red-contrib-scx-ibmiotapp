@@ -138,6 +138,8 @@ module.exports = function(RED) {
 		node.allDevices = nodeCfg.allDevices;
 		node.allApplications = nodeCfg.allApplications;
 		node.allDeviceTypes = nodeCfg.allDeviceTypes;
+		node.allLogicalInterfaces = nodeCfg.allLogicalInterfaces;
+		node.allRules = nodeCfg.allRules;
 		node.allEventsOrCommands = nodeCfg.allEventsOrCommands;
 		node.allEvents = nodeCfg.allEvents;
 		node.allCommands = nodeCfg.allCommands;
@@ -234,6 +236,8 @@ module.exports = function(RED) {
 		node.eventCommandType = ( node.allEventsOrCommands ) ? '+' : nodeCfg.eventCommandType;
 		node.eventType = ( node.allEvents ) ? '+' : nodeCfg.eventType;
 		node.commandType = ( node.allCommands ) ? '+' : nodeCfg.commandType;
+		node.logicalInterfaceId = ( node.allLogicalInterfaces ) ? '+' : nodeCfg.logicalInterfaceId;
+		node.ruleId = ( node.allRules ) ? '+' : nodeCfg.ruleId;
 
 		// if appId is not provided generate random.
 		if(!node.appId) {
@@ -289,8 +293,6 @@ module.exports = function(RED) {
 		catch(err) {
 			node.error("Watson IoT client configuration: " + err.toString());
 		}
-
-
 	}
 
 
@@ -450,6 +452,30 @@ module.exports = function(RED) {
 						that.send(msg);
 					});
 
+				} else if (that.inputType === "ruletrig") {
+					that.client.on("connect", function() {
+						that.client.subscribeToRuleTriggerEvents(that.logicalInterfaceId, that.ruleId, that.qos);
+					});
+
+					this.client.on("ruleTrigger", function(logicalInterfaceId, ruleId, payload, topic) {
+						var parsedPayload = "";
+
+						try {
+							parsedPayload = JSON.parse(payload);
+						} catch (err) {
+							parsedPayload = payload;
+						}
+
+						var msg = {
+							"logicalInterfaceId" : logicalInterfaceId,
+							"ruleId" : ruleId,
+							"state" : parsedPayload
+						};
+
+						that.send(msg);
+					});
+				} else if (that.inputType === "ruleerr") {
+					// TODO!
 				} else if (that.inputType === "cmd") {
 
 					that.client.on("connect", function () {
