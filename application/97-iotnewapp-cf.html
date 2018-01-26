@@ -230,6 +230,8 @@
 		<select id="node-input-inputType"  style="width:300px;">
 			<option value="evt">Device Event</option>
 			<option value="cmd" id="node-input-inputTypeCmd">Device Command</option>
+			<option value="devicestate" id="node-input-inputTypeDeviceState">Device State Event</option>
+			<option value="devicestateerr" id="node-input-inputTypeDeviceStateErr">Device State Error Event</option>
 			<option value="ruletrig" id="node-input-inputTypeRuleT">Rule Trigger</option>
 			<option value="ruleerr" id="node-input-inputTypeRuleE">Rule Error</option>
 			<option value="devsts">Device Status</option>
@@ -237,6 +239,19 @@
 		</select>
     </div>
 
+    <div class="form-row">
+        <label for="node-input-deviceType" id="node-input-deviceTypeLabel" style="width:130px;"><i class="fa fa-rocket"></i> Device Type</label>
+		<input type="checkbox" id="node-input-allDeviceTypes" style="width:10px;" >
+		<label for="node-input-allDeviceTypesLabel" id="node-input-allDeviceTypesLabel" style="width:40px;">All or </label>
+        <input type="text" id="node-input-deviceType" placeholder="device type e.g. armmbed" style="width:240px;">
+    </div>
+	<div class="form-row">
+        <label for="node-input-deviceId" id="node-input-deviceIdLabel"style="width:130px;"><i class="fa fa-street-view"></i> Device Id</label>
+		<input type="checkbox" id="node-input-allDevices" style="width:10px;">
+		<label for="node-input-allDevicesLabel" id="node-input-allDevicesLabel" style="width:40px;">All or </label>
+        <input type="text" id="node-input-deviceId" placeholder="device id e.g. ab12cd231a21" style="width:240px;">
+	</div>
+	
 	<div class="form-row">
         <label for="node-input-logicalInterface" id="node-input-logicalInterfaceLabel" style="width:130px;"><i class="fa fa-rocket"></i> Logical Interface</label>
 		<input type="checkbox" id="node-input-allLogicalInterfaces" style="width:10px;" >
@@ -251,18 +266,6 @@
         <input type="text" id="node-input-ruleId" placeholder="Rule Id e.g. ab03efffb45cf66" style="width:240px;">
 	</div>
 
-    <div class="form-row">
-        <label for="node-input-deviceType" id="node-input-deviceTypeLabel" style="width:130px;"><i class="fa fa-rocket"></i> Device Type</label>
-		<input type="checkbox" id="node-input-allDeviceTypes" style="width:10px;" >
-		<label for="node-input-allDeviceTypesLabel" id="node-input-allDeviceTypesLabel" style="width:40px;">All or </label>
-        <input type="text" id="node-input-deviceType" placeholder="device type e.g. armmbed" style="width:240px;">
-    </div>
-	<div class="form-row">
-        <label for="node-input-deviceId" id="node-input-deviceIdLabel"style="width:130px;"><i class="fa fa-street-view"></i> Device Id</label>
-		<input type="checkbox" id="node-input-allDevices" style="width:10px;">
-		<label for="node-input-allDevicesLabel" id="node-input-allDevicesLabel" style="width:40px;">All or </label>
-        <input type="text" id="node-input-deviceId" placeholder="device id e.g. ab12cd231a21" style="width:240px;">
-    </div>
 	<div class="form-row">
         <label for="node-input-applicationId" id="node-input-applicationIdLabel"style="width:130px;"><i class="fa fa-tasks"></i> Application Id</label>
 		<input type="checkbox" id="node-input-allApplications" style="width:10px;">
@@ -695,6 +698,28 @@
 				$("#node-input-ruleId").hide();
 			};
 
+			var showTypeIdDeviceIdInput = function() {
+				$("#node-input-deviceTypeLabel").show();
+				$("#node-input-deviceType").show();
+				$("#node-input-allDeviceTypes").show();
+				$("#node-input-allDeviceTypesLabel").show();
+				$("#node-input-allDevices").show();
+				$("#node-input-allDevicesLabel").show();
+
+				$('#node-input-deviceIdLabel').show();
+				$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
+				$('#node-input-deviceId').show();				
+				document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';				
+				$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
+
+				$("#node-input-deviceTypeLabel").show();
+				$("#node-input-deviceType").show();
+				$("#node-input-allDeviceTypes").show();
+				$("#node-input-allDeviceTypesLabel").show();
+				$("#node-input-allDevices").show();
+				$("#node-input-allDevicesLabel").show();
+			}
+
 			var hideAllInputsAndLabels = function() {
 				hideAllRuleInput();
 				$('#node-input-deviceIdLabel').hide();
@@ -837,14 +862,18 @@
 				$('#node-input-applicationId').attr("placeholder", "app id e.g. myapp02");
 			};
 
-			var onRuleSelectREG = function() {
-				hideAllInputsAndLabels();
+			var showLIInput = function() {
 				$('#node-input-logicalInterfaceLabel').show();
 				$("#node-input-allLogicalInterfaces").prop("checked", true);
 				$("#node-input-allLogicalInterfaces").show();
 				$("#node-input-allLogicalInterfacesLabel").show();
 				$("#node-input-logicalInterface").val('+');
 				$("#node-input-logicalInterface").show();
+			};
+
+			var onRuleSelectREG = function() {
+				hideAllInputsAndLabels();
+				showLIInput();
 
 				$('#node-input-ruleIdLabel').show();
 				$("#node-input-allRules").prop("checked", true);
@@ -852,7 +881,18 @@
 				$("#node-input-allRulesLabel").show();
 				$("#node-input-ruleId").val('+');
 				$("#node-input-ruleId").show();
-			}
+			};
+
+			var onDeviceStateSelectREG = function() {
+				hideAllInputsAndLabels();
+				showTypeIdDeviceIdInput();
+				showLIInput();
+			};
+
+			var onDeviceStateErrSelectREG = function() {
+				hideAllInputsAndLabels();
+				showTypeIdDeviceIdInput();
+			};
 
 			/*
 			 * Function to disable/enable input fields based on the value of the associated 'All' checkbox
@@ -1013,6 +1053,8 @@
 
 				$('#node-input-service').val(result);
 				$("#node-input-inputTypeCmd").show();
+				$("#node-input-inputTypeDeviceState").show();
+				$("#node-input-inputTypeDeviceStateErr").show();
 				$("#node-input-inputTypeRuleT").show();
 				$("#node-input-inputTypeRuleE").show();
 				$("#node-input-inputType").show();
@@ -1041,6 +1083,8 @@
 				$('#node-input-service').val(result);
 
 				$("#node-input-inputTypeCmd").hide();
+				$("#node-input-inputTypeDeviceState").hide();
+				$("#node-input-inputTypeDeviceStateErr").hide();
 				$("#node-input-inputTypeRuleT").hide();
 				$("#node-input-inputTypeRuleE").hide();
 				$("#node-input-allDevicesLabel").hide();
@@ -1092,6 +1136,10 @@
 					onRuleSelectREG();
 				} else if (id == "ruleerr") {
 					onRuleSelectREG();
+				} else if (id == "devicestate"){
+					onDeviceStateSelectREG();
+				} else if (id == "devicestateerr"){
+					onDeviceStateErrSelectREG();
 				} else {
 
 				}

@@ -452,6 +452,51 @@ module.exports = function(RED) {
 						that.send(msg);
 					});
 
+				} else if (that.inputType === "devicestate") {
+					that.client.on("connect", function() {
+						that.client.subscribeToDeviceStateEvents(that.deviceType, that.deviceId, that.logicalInterfaceId, that.qos);
+					});
+
+					this.client.on("deviceState", function(deviceTypeId, deviceId, logicalInterfaceId, payload, topic) {
+						var parsedPayload = "";
+
+						try {
+							parsedPayload = JSON.parse(payload);
+						} catch (err) {
+							parsedPayload = payload;
+						}
+
+						var msg = {
+							"deviceType" : deviceTypeId,
+							"deviceId" : deviceId,
+							"logicalInterfaceId" : logicalInterfaceId,							
+							"state" : parsedPayload
+						};
+
+						that.send(msg);
+					});
+				} else if (that.inputType === "devicestateerr") {
+					that.client.on("connect", function() {
+						that.client.subscribeToDeviceStateErrorEvents(that.deviceType, that.deviceId, that.qos);
+					});
+
+					this.client.on("deviceStateError", function(deviceTypeId, deviceId, payload, topic) {
+						var parsedPayload = "";
+
+						try {
+							parsedPayload = JSON.parse(payload);
+						} catch (err) {
+							parsedPayload = payload;
+						}
+
+						var msg = {
+							"deviceType" : deviceTypeId,
+							"deviceId" : deviceId,												
+							"error" : parsedPayload
+						};
+
+						that.send(msg);
+					});
 				} else if (that.inputType === "ruletrig") {
 					that.client.on("connect", function() {
 						that.client.subscribeToRuleTriggerEvents(that.logicalInterfaceId, that.ruleId, that.qos);
@@ -475,7 +520,27 @@ module.exports = function(RED) {
 						that.send(msg);
 					});
 				} else if (that.inputType === "ruleerr") {
-					// TODO!
+					that.client.on("connect", function() {
+						that.client.subscribeToRuleErrorEvents(that.logicalInterfaceId, that.ruleId, that.qos);
+					});
+
+					this.client.on("ruleError", function(logicalInterfaceId, ruleId, payload, topic) {
+						var parsedPayload = "";
+
+						try {
+							parsedPayload = JSON.parse(payload);
+						} catch (err) {
+							parsedPayload = payload;
+						}
+
+						var msg = {
+							"logicalInterfaceId" : logicalInterfaceId,
+							"ruleId" : ruleId,
+							"error" : parsedPayload
+						};
+
+						that.send(msg);
+					});
 				} else if (that.inputType === "cmd") {
 
 					that.client.on("connect", function () {
