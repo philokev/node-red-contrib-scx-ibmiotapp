@@ -80,7 +80,7 @@
               } else {
                 $("#node-config-input-appId").prop('required',false);
               }
-              
+
             });
         },
 		credentials: {
@@ -91,7 +91,7 @@
 </script>
 
 <script type="text/x-red" data-help-name="ibmiot">
-  <p> To use Shared subscription, check <b>Scalable</b> and provide the <b>Application ID</b>. The <b>Application ID</b> must be same across different clients.  
+  <p> To use Shared subscription, check <b>Scalable</b> and provide the <b>Application ID</b>. The <b>Application ID</b> must be same across different clients.
 </script>
 
 <script type="text/x-red" data-template-name="ibmiot out">
@@ -230,6 +230,10 @@
 		<select id="node-input-inputType"  style="width:300px;">
 			<option value="evt">Device Event</option>
 			<option value="cmd" id="node-input-inputTypeCmd">Device Command</option>
+			<option value="devicestate" id="node-input-inputTypeDeviceState">Device State Event</option>
+			<option value="devicestateerr" id="node-input-inputTypeDeviceStateErr">Device State Error Event</option>
+			<option value="ruletrig" id="node-input-inputTypeRuleT">Rule Trigger</option>
+			<option value="ruleerr" id="node-input-inputTypeRuleE">Rule Error</option>
 			<option value="devsts">Device Status</option>
 			<option value="appsts">Application Status</option>
 		</select>
@@ -246,7 +250,22 @@
 		<input type="checkbox" id="node-input-allDevices" style="width:10px;">
 		<label for="node-input-allDevicesLabel" id="node-input-allDevicesLabel" style="width:40px;">All or </label>
         <input type="text" id="node-input-deviceId" placeholder="device id e.g. ab12cd231a21" style="width:240px;">
-    </div>
+	</div>
+	
+	<div class="form-row">
+        <label for="node-input-logicalInterface" id="node-input-logicalInterfaceLabel" style="width:130px;"><i class="fa fa-rocket"></i> Logical Interface</label>
+		<input type="checkbox" id="node-input-allLogicalInterfaces" style="width:10px;" >
+		<label for="node-input-allLogicalInterfaces" id="node-input-allLogicalInterfacesLabel" style="width:40px;">All or </label>
+        <input type="text" id="node-input-logicalInterface" placeholder="Logical Interface e.g. ITempSensor" style="width:240px;">
+	</div>
+
+	<div class="form-row">
+        <label for="node-input-ruleId" id="node-input-ruleIdLabel" style="width:130px;"><i class="fa fa-rocket"></i> Rule Id</label>
+		<input type="checkbox" id="node-input-allRules" style="width:10px;" >
+		<label for="node-input-allRules" id="node-input-allRulesLabel" style="width:40px;">All or </label>
+        <input type="text" id="node-input-ruleId" placeholder="Rule Id e.g. ab03efffb45cf66" style="width:240px;">
+	</div>
+
 	<div class="form-row">
         <label for="node-input-applicationId" id="node-input-applicationIdLabel"style="width:130px;"><i class="fa fa-tasks"></i> Application Id</label>
 		<input type="checkbox" id="node-input-allApplications" style="width:10px;">
@@ -413,7 +432,7 @@
 					$("#registeredTips").hide();
 					$("#quickstartTips").show();
 
-                                        $("#node-form-qos-div").hide();
+                    $("#node-form-qos-div").hide();
 				} else if(serviceSelected === "apiKey"){
 					result = "registered";
 
@@ -440,7 +459,7 @@
 					$("#node-input-formatLabel").show();
 					$("#node-input-format").show();
 
-                                        $("#node-form-qos-div").show();
+                    $("#node-form-qos-div").show();
 
 					$("#registeredTips").show();
 					$("#quickstartTips").hide();
@@ -633,6 +652,8 @@
 			authentication: {value:"quickstart"},
 			apiKey: {type:"ibmiot", validate: validateAuthorization},
 			inputType: {value:"evt"},
+			logicalInterfaceId: {value:""},
+			ruleId: {value:""},
 			deviceId: {value:""},
 			applicationId: {value:""},
 			deviceType: {value:""},
@@ -647,7 +668,7 @@
 			allEvents: {value: ""},
 			allCommands: {value: ""},
 			allFormats: {value: ""},
-                        qos: {value: 0},
+            qos: {value: 0},
 
 		},
 		inputs:0,
@@ -660,216 +681,252 @@
 				return this.name ? "node_label_italic" : "";
 		},
 		oneditprepare: function() {
-			result = "";
 
-			var noderedVersion = "";
-			$.getJSON('ibmiot/service?ts=' + Math.random(), function(data) {
-				var authnode = document.getElementById('node-input-authentication');
-				var bluemixnode = authnode.lastElementChild;
+			var hideAllRuleInput = function() {
+				$('#node-input-logicalInterfaceLabel').hide();
+				$("#node-input-allLogicalInterfaces").val('');
+				$("#node-input-allLogicalInterfaces").hide();
+				$("#node-input-allLogicalInterfacesLabel").hide();
+				$("#node-input-logicalInterface").val('');
+				$("#node-input-logicalInterface").hide();
 
-				if(data.service !== 'registered') {
-					noderedVersion = data.version;
+				$('#node-input-ruleIdLabel').hide();
+				$("#node-input-allRules").val('');
+				$("#node-input-allRules").hide();
+				$("#node-input-allRulesLabel").hide();
+				$("#node-input-ruleId").val('');
+				$("#node-input-ruleId").hide();
+			};
 
-					if(bluemixnode.id === 'node-input-bounded-innode') {
-						bluemixnode.remove();
-					} else {
+			var showTypeIdDeviceIdInput = function() {
+				$("#node-input-deviceTypeLabel").show();
+				$("#node-input-deviceType").show();
+				$("#node-input-allDeviceTypes").show();
+				$("#node-input-allDeviceTypesLabel").show();
+				$("#node-input-allDevices").show();
+				$("#node-input-allDevicesLabel").show();
 
-					}
+				$('#node-input-deviceIdLabel').show();
+				$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
+				$('#node-input-deviceId').show();				
+				document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';				
+				$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
 
-				} else {
+				$("#node-input-deviceTypeLabel").show();
+				$("#node-input-deviceType").show();
+				$("#node-input-allDeviceTypes").show();
+				$("#node-input-allDeviceTypesLabel").show();
+				$("#node-input-allDevices").show();
+				$("#node-input-allDevicesLabel").show();
+			}
 
-				}
-			});
-
-			var serviceSelected = $("#node-input-authentication").val();
-
-			if(serviceSelected === "quickstart") {
-				result = "quickstart";
-
-                                $("#node-input-apiKey-div").hide();
-
-				var id = $("#node-input-inputType").val();
-				if (id == "evt") {
-					$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-					$('#node-input-deviceIdLabel').show();
-					$('#node-input-deviceId').show();
-
-					$('#node-input-applicationIdLabel').hide();
-					$("#node-input-applicationId").val('');
-					$('#node-input-applicationId').hide();
-
-					document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-					$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-				}
-
-				if (id == "devsts") {
-					$('#node-input-deviceIdLabel').show();
-					$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-					$('#node-input-deviceId').show();
-
-					$('#node-input-applicationIdLabel').hide();
-					$("#node-input-applicationId").val('');
-					$('#node-input-applicationId').hide();
-
-					document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-					$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-				}
-
-				if (id == "appsts") {
-					$('#node-input-deviceIdLabel').hide();
-					$("#node-input-deviceId").val('');
-					$('#node-input-deviceId').hide();
-
-					$('#node-input-applicationIdLabel').show();
-					$('#node-input-applicationId').show();
-
-					document.getElementById('node-input-applicationIdLabel').innerHTML='<i class="fa fa-tasks"></i> App Id</label>';
-					$('#node-input-applicationId').attr("placeholder", "app id e.g. myapp02");
-
-				}
-
-				$('#node-input-service').val(result);
-
-				$("#node-input-inputTypeCmd").hide();
-				$("#node-input-allDevicesLabel").hide();
-				$("#node-input-allDevices").prop("checked", false);
-				$("#node-input-allDevices").hide();
-
-				$("#node-input-allApplicationsLabel").hide();
-				$("#node-input-allApplications").prop("checked", false);
-				$("#node-input-allApplications").hide();
-
-				$("#node-input-deviceTypeLabel").hide();
-				$("#node-input-deviceType").val("+");
-				$("#node-input-deviceType").hide();
-				$("#node-input-allDeviceTypesLabel").hide();
-				$("#node-input-allDeviceTypes").prop("checked", true);
-				$("#node-input-allDeviceTypes").hide();
+			var hideAllInputsAndLabels = function() {
+				hideAllRuleInput();
+				$('#node-input-deviceIdLabel').hide();
+				$("#node-input-deviceId").hide();
+				$('#node-input-applicationIdLabel').hide();
+				$('#node-input-allApplicationsLabel').hide();
+				$('#node-input-allApplications').hide();
+				$('#node-input-applicationId').hide();
 				$("#node-input-eventLabel").hide();
-				$("#node-input-eventType").val("+");
-				$("#node-input-eventType").hide();
-				$("#node-input-allEventsLabel").hide();
-				$("#node-input-allEvents").prop("checked", true);
 				$("#node-input-allEvents").hide();
-				$("#node-input-formatLabel").hide();
-				$("#node-input-format").val("json");
-				$("#node-input-format").hide();
-				$("#node-input-allFormatsLabel").hide();
-				$("#node-input-allFormats").hide();
-
+				$("#node-input-allEventsLabel").hide();
+				$("#node-input-eventType").hide();
 				$("#node-input-commandLabel").hide();
 				$("#node-input-allCommands").hide();
 				$("#node-input-allCommandsLabel").hide();
 				$("#node-input-commandType").hide();
+				$("#node-input-formatLabel").hide();
+				$("#node-input-format").hide();
+				$("#node-input-allFormats").hide();
+				$("#node-input-allFormatsLabel").hide();
+				$("#node-input-deviceTypeLabel").hide();
+				$("#node-input-deviceType").hide();
+				$("#node-input-allDeviceTypes").hide();
+				$("#node-input-allDeviceTypesLabel").hide();
+				$("#node-input-allDevices").hide();
+				$("#node-input-allDevicesLabel").hide();
+			}
 
-				$("#registeredTips").hide();
-				$("#quickstartTips").show();
-
-				var allDevicesValue = $("#node-input-allDevices").is(":checked");
-				if( allDevicesValue) {
-					$("#node-input-deviceId").prop("disabled", false);
-				}
-
-				var allDeviceTypesValue = $("#node-input-allDeviceTypes").is(":checked");
-				if( allDeviceTypesValue) {
-					$("#node-input-deviceType").prop("disabled", false);
-				}
-
-				var allEventsValue = $("#node-input-allEvents").is(":checked");
-				if( allEventsValue) {
-					$("#node-input-eventType").prop("disabled", false);
-				}
-
-				var allFormatsValue = $("#node-input-allFormats").is(":checked");
-				if( allFormatsValue) {
-					$("#node-input-format").prop("disabled", false);
-				}
-
-				var inputTypeSelected = $("#node-input-inputType").val();
-				if( inputTypeSelected == "cmd") {
-					$("#node-input-inputType").val("evt");
-				}
-
-
-				$("#node-input-inputType").change(function() {
-					var id = $("#node-input-inputType option:selected").val();
-					if (id == "evt") {
-						$('#node-input-deviceIdLabel').show();
-						$('#node-input-deviceId').show();
-						$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-
-						$('#node-input-applicationIdLabel').hide();
-						$("#node-input-applicationId").val('');
-						$('#node-input-applicationId').hide();
-
-						document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-						$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-					}
-
-					if (id == "devsts") {
-						$('#node-input-deviceIdLabel').show();
-						$('#node-input-deviceId').show();
-						$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-
-						$('#node-input-applicationIdLabel').hide();
-						$("#node-input-applicationId").val('');
-						$('#node-input-applicationId').hide();
-
-						document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-						$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-					}
-
-					if (id == "appsts") {
-						$('#node-input-deviceIdLabel').hide();
-						$("#node-input-deviceId").val('');
-						$('#node-input-deviceId').hide();
-
-						$('#node-input-applicationIdLabel').show();
-						$('#node-input-applicationId').show();
-
-						document.getElementById('node-input-applicationIdLabel').innerHTML='<i class="fa fa-tasks"></i> App Id</label>';
-						$('#node-input-applicationId').attr("placeholder", "app id e.g. myapp02");
-
-					}
-
-				});
-                                $("#node-form-qos-div").hide();
-			} else {
-
-				result = "registered";
-
-				if( serviceSelected === "boundService") {
-					$("#node-input-apiKey-div").hide();
-				} else {
-	                $("#node-input-apiKey-div").show();
-				}
-
-				$('#node-input-service').val(result);
-				$("#node-input-inputTypeCmd").show();
-				$("#node-input-inputType").show();
-				$("#node-input-allDevicesLabel").show();
-				$("#node-input-allDevices").show();
-				$("#node-input-deviceTypeLabel").show();
-				$("#node-input-deviceType").show();
-				$("#node-input-allDeviceTypesLabel").show();
-				$("#node-input-allDeviceTypes").show();
+			/*
+			 * Function to configure the events panel for registered
+			*/
+			var onEvtSelectedREG = function() {
+				hideAllInputsAndLabels();
+				$('#node-input-deviceIdLabel').show();
+				$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
+				$('#node-input-deviceId').show();
+				document.getElementById('node-input-eventLabel').innerHTML='<i class="fa fa-tasks"></i> Event';
+				document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
+				$('#node-input-eventType').attr("placeholder", "event type e.g. status");
+				$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
 				$("#node-input-eventLabel").show();
-				$("#node-input-eventType").show();
-				$("#node-input-allEventsLabel").show();
 				$("#node-input-allEvents").show();
+				$("#node-input-allEventsLabel").show();
+				$("#node-input-eventType").show();
 				$("#node-input-formatLabel").show();
 				$("#node-input-format").show();
-				$("#node-input-allFormatsLabel").show();
 				$("#node-input-allFormats").show();
+				$("#node-input-allFormatsLabel").show();
+				$("#node-input-deviceTypeLabel").show();
+				$("#node-input-deviceType").show();
+				$("#node-input-allDeviceTypes").show();
+				$("#node-input-allDeviceTypesLabel").show();
+				$("#node-input-allDevices").show();
+				$("#node-input-allDevicesLabel").show();
+			};
 
-                                $("#node-form-qos-div").show();
+			var onEvtSelectedQS = function() {
+				hideAllInputsAndLabels();
+				$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
+				$('#node-input-deviceIdLabel').show();
+				$('#node-input-deviceId').show();
+				document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
+				$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
+			};
 
-				$("#registeredTips").show();
-				$("#quickstartTips").hide();
+			/*
+			 * Function to configure the device status panel for registered
+			*/
+			var onDevStsSelectedREG = function() {
+				hideAllInputsAndLabels();
+				$('#node-input-deviceIdLabel').show();
+				$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
+				$('#node-input-deviceId').show();
+				document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
+				$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
+				$("#node-input-deviceTypeLabel").show();
+				$("#node-input-deviceType").show();
+				$("#node-input-allDeviceTypes").show();
+				$("#node-input-allDeviceTypesLabel").show();
+				$("#node-input-allDevices").show();
+				$("#node-input-allDevicesLabel").show();
+			};
 
-                                if(!$("#node-input-qos option:selected").length) {
-                                   document.getElementById("node-input-qos").options[0].selected = true;
-                                }
+			var onDevStsSelectedQS = function() {
+				hideAllInputsAndLabels();
+				$('#node-input-deviceIdLabel').show();
+				$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
+				$('#node-input-deviceId').show();
+				document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
+				$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
+			};
+
+			/*
+			 * Function to configure the cmd panel for registered
+			*/
+			var onCmdSelectedREG = function() {
+				hideAllInputsAndLabels();
+				$('#node-input-deviceIdLabel').show();
+				$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
+				$('#node-input-deviceId').show();
+				document.getElementById('node-input-eventLabel').innerHTML='<i class="fa fa-tasks"></i> Command';
+				document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
+				$('#node-input-eventType').attr("placeholder", "command type e.g. blink");
+				$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
+				$("#node-input-commandLabel").show();
+				$("#node-input-allCommands").show();
+				$("#node-input-allCommandsLabel").show();
+				$("#node-input-commandType").show();
+				$("#node-input-formatLabel").show();
+				$("#node-input-format").show();
+				$("#node-input-allFormats").show();
+				$("#node-input-allFormatsLabel").show();
+				$("#node-input-deviceTypeLabel").show();
+				$("#node-input-deviceType").show();
+				$("#node-input-allDeviceTypes").show();
+				$("#node-input-allDeviceTypesLabel").show();
+				$("#node-input-allDevices").show();
+				$("#node-input-allDevicesLabel").show();
+			};
+
+			/*
+			 * Function to configure the app status for registered
+			*/
+			var onAppStsSelectedREG = function() {
+				hideAllInputsAndLabels();
+				$('#node-input-applicationIdLabel').show();
+				$('#node-input-allApplicationsLabel').show();
+				$('#node-input-allApplications').show();
+				$('#node-input-applicationId').show();
+				document.getElementById('node-input-applicationIdLabel').innerHTML='<i class="fa fa-tasks"></i> App Id</label>';
+				$('#node-input-applicationId').attr("placeholder", "app id e.g. myapp02");
+				$('#node-input-deviceId').attr("placeholder", "app id e.g. myapp02");
+			};
+
+			var onAppStsSelectedQS = function() {
+				hideAllInputsAndLabels();
+				$('#node-input-applicationIdLabel').show();
+				$('#node-input-applicationId').show();
+				document.getElementById('node-input-applicationIdLabel').innerHTML='<i class="fa fa-tasks"></i> App Id</label>';
+				$('#node-input-applicationId').attr("placeholder", "app id e.g. myapp02");
+			};
+
+			var showLIInput = function() {
+				$('#node-input-logicalInterfaceLabel').show();
+				$("#node-input-allLogicalInterfaces").prop("checked", true);
+				$("#node-input-allLogicalInterfaces").show();
+				$("#node-input-allLogicalInterfacesLabel").show();
+				$("#node-input-logicalInterface").val('+');
+				$("#node-input-logicalInterface").show();
+			};
+
+			var onRuleSelectREG = function() {
+				hideAllInputsAndLabels();
+				showLIInput();
+
+				$('#node-input-ruleIdLabel').show();
+				$("#node-input-allRules").prop("checked", true);
+				$("#node-input-allRules").show();
+				$("#node-input-allRulesLabel").show();
+				$("#node-input-ruleId").val('+');
+				$("#node-input-ruleId").show();
+			};
+
+			var onDeviceStateSelectREG = function() {
+				hideAllInputsAndLabels();
+				showTypeIdDeviceIdInput();
+				showLIInput();
+			};
+
+			var onDeviceStateErrSelectREG = function() {
+				hideAllInputsAndLabels();
+				showTypeIdDeviceIdInput();
+			};
+
+			/*
+			 * Function to disable/enable input fields based on the value of the associated 'All' checkbox
+			*/
+			var configureCheckBoxInputs = function() {
+				var allInterfacesValue = $("#node-input-allLogicalInterfaces").is(":checked");
+				if( allInterfacesValue) {
+					$("#node-input-logicalInterface").prop("disabled", true);
+				} else {
+					$("#node-input-logicalInterface").prop("disabled", false);
+				}
+
+				var allRulesValue = $("#node-input-allRules").is(":checked");
+				if( allRulesValue) {
+					$("#node-input-ruleId").prop("disabled", true);
+				} else {
+					$("#node-input-ruleId").prop("disabled", false);
+				}
+
+				$("#node-input-allLogicalInterfaces").change(function() {
+					if($("#node-input-allLogicalInterfaces").is(":checked")) {
+						$("#node-input-logicalInterface").prop("disabled", true);
+					} else {
+						$("#node-input-logicalInterface").prop("disabled", false);
+					}
+				});
+
+				$("#node-input-allRules").change(function() {
+					if($("#node-input-allRules").is(":checked")) {
+						$("#node-input-ruleId").prop("disabled", true);
+					} else {
+						$("#node-input-ruleId").prop("disabled", false);
+					}
+				});
 
 				var allDevicesValue = $("#node-input-allDevices").is(":checked");
 				if( allDevicesValue) {
@@ -955,892 +1012,227 @@
 					}
 				});
 
-				var id = $("#node-input-inputType").val();
-				if (id == "evt") {
-					$('#node-input-deviceIdLabel').show();
-					$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-					$('#node-input-deviceId').show();
-
-					$('#node-input-applicationIdLabel').hide();
-					$('#node-input-allApplicationsLabel').hide();
-					$('#node-input-allApplications').hide();
-					$("#node-input-applicationId").val('');
-					$('#node-input-applicationId').hide();
-
-					document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-					document.getElementById('node-input-eventLabel').innerHTML='<i class="fa fa-tasks"></i> Event';
-					$('#node-input-eventType').attr("placeholder", "event type e.g. status");
-					$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-
-					$("#node-input-eventLabel").show();
-					$("#node-input-allEvents").show();
-					$("#node-input-allEventsLabel").show();
-					$("#node-input-eventType").show();
-
-					$("#node-input-commandLabel").hide();
-					$("#node-input-allCommands").hide();
-					$("#node-input-allCommandsLabel").hide();
-					$("#node-input-commandType").hide();
-
-					$("#node-input-formatLabel").show();
-					$("#node-input-format").show();
-					$("#node-input-allFormats").show();
-					$("#node-input-allFormatsLabel").show();
-					$("#node-input-deviceTypeLabel").show();
-					$("#node-input-deviceType").show();
-					$("#node-input-allDeviceTypes").show();
-					$("#node-input-allDeviceTypesLabel").show();
-
-					$("#node-input-allDevices").show();
-					$("#node-input-allDevicesLabel").show();
-
-				} else if (id == "devsts"){
-					$('#node-input-deviceIdLabel').show();
-					$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-					$('#node-input-deviceId').show();
-
-					$('#node-input-applicationIdLabel').hide();
-					$('#node-input-allApplicationsLabel').hide();
-					$('#node-input-allApplications').hide();
-					$("#node-input-applicationId").val('');
-					$('#node-input-applicationId').hide();
-
-					document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-					$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-
-					$("#node-input-eventLabel").hide();
-					$("#node-input-allEvents").hide();
-					$("#node-input-allEventsLabel").hide();
-					$("#node-input-eventType").hide();
-
-					$("#node-input-commandLabel").hide();
-					$("#node-input-allCommands").hide();
-					$("#node-input-allCommandsLabel").hide();
-					$("#node-input-commandType").hide();
-
-					$("#node-input-formatLabel").hide();
-					$("#node-input-format").hide();
-					$("#node-input-allFormats").hide();
-					$("#node-input-allFormatsLabel").hide();
-					$("#node-input-deviceTypeLabel").show();
-					$("#node-input-deviceType").show();
-					$("#node-input-allDeviceTypes").show();
-					$("#node-input-allDeviceTypesLabel").show();
-
-					$("#node-input-allDevices").show();
-					$("#node-input-allDevicesLabel").show();
-				} else if (id == "cmd"){
-					$('#node-input-deviceIdLabel').show();
-					$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-					$('#node-input-deviceId').show();
-
-					$('#node-input-applicationIdLabel').hide();
-					$('#node-input-allApplicationsLabel').hide();
-					$('#node-input-allApplications').hide();
-					$("#node-input-applicationId").val('');
-					$('#node-input-applicationId').hide();
-
-					document.getElementById('node-input-eventLabel').innerHTML='<i class="fa fa-tasks"></i> Command';
-					document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-					$('#node-input-eventType').attr("placeholder", "command type e.g. blink");
-					$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-
-
-					$("#node-input-eventLabel").hide();
-					$("#node-input-allEvents").hide();
-					$("#node-input-allEventsLabel").hide();
-					$("#node-input-eventType").hide();
-
-					$("#node-input-commandLabel").show();
-					$("#node-input-allCommands").show();
-					$("#node-input-allCommandsLabel").show();
-					$("#node-input-commandType").show();
-
-					$("#node-input-formatLabel").show();
-					$("#node-input-format").show();
-					$("#node-input-allFormats").show();
-					$("#node-input-allFormatsLabel").show();
-					$("#node-input-deviceTypeLabel").show();
-					$("#node-input-deviceType").show();
-					$("#node-input-allDeviceTypes").show();
-					$("#node-input-allDeviceTypesLabel").show();
-
-					$("#node-input-allDevices").show();
-					$("#node-input-allDevicesLabel").show();
-				} else if (id == "appsts") {
-
-					$('#node-input-deviceIdLabel').hide();
-					$("#node-input-deviceId").val('');
-					$('#node-input-deviceId').hide();
-
-					$('#node-input-applicationIdLabel').show();
-					$('#node-input-allApplicationsLabel').show();
-					$('#node-input-allApplications').show();
-					$('#node-input-applicationId').show();
-
-					$("#node-input-commandLabel").hide();
-					$("#node-input-allCommands").hide();
-					$("#node-input-allCommandsLabel").hide();
-					$("#node-input-commandType").hide();
-
-					document.getElementById('node-input-applicationIdLabel').innerHTML='<i class="fa fa-tasks"></i> App Id</label>';
-					$('#node-input-applicationId').attr("placeholder", "app id e.g. myapp02");
-
-					$("#node-input-eventLabel").hide();
-					$("#node-input-allEvents").hide();
-					$("#node-input-allEventsLabel").hide();
-					$("#node-input-eventType").hide();
-
-					$("#node-input-formatLabel").hide();
-					$("#node-input-format").hide();
-					$("#node-input-allFormats").hide();
-					$("#node-input-allFormatsLabel").hide();
-					$("#node-input-deviceTypeLabel").hide();
-					$("#node-input-deviceType").hide();
-					$("#node-input-allDeviceTypes").hide();
-					$("#node-input-allDeviceTypesLabel").hide();
-
-					$("#node-input-allDevices").hide();
-					$("#node-input-allDevicesLabel").hide();
-
-				} else {
-
+				if(!$("#node-input-qos option:selected").length) {
+					document.getElementById("node-input-qos").options[0].selected = true;
 				}
+			};
 
-				$("#node-input-inputType").change(function() {
-					var id = $("#node-input-inputType option:selected").val();
-					if (id == "evt") {
-						$('#node-input-deviceIdLabel').show();
-						$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-						$('#node-input-deviceId').show();
-
-						$('#node-input-applicationIdLabel').hide();
-						$('#node-input-allApplicationsLabel').hide();
-						$('#node-input-allApplications').hide();
-						$("#node-input-applicationId").val('');
-						$('#node-input-applicationId').hide();
-
-						document.getElementById('node-input-eventLabel').innerHTML='<i class="fa fa-tasks"></i> Event';
-						document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-						$('#node-input-eventType').attr("placeholder", "event type e.g. status");
-						$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-
-						$("#node-input-eventLabel").show();
-						$("#node-input-allEvents").show();
-						$("#node-input-allEventsLabel").show();
-						$("#node-input-eventType").show();
-
-						$("#node-input-commandLabel").hide();
-						$("#node-input-allCommands").hide();
-						$("#node-input-allCommandsLabel").hide();
-						$("#node-input-commandType").hide();
-
-						$("#node-input-formatLabel").show();
-						$("#node-input-format").show();
-						$("#node-input-allFormats").show();
-						$("#node-input-allFormatsLabel").show();
-						$("#node-input-deviceTypeLabel").show();
-						$("#node-input-deviceType").show();
-						$("#node-input-allDeviceTypes").show();
-						$("#node-input-allDeviceTypesLabel").show();
-
-						$("#node-input-allDevices").show();
-						$("#node-input-allDevicesLabel").show();
-
-					} else if (id == "devsts"){
-						$('#node-input-deviceIdLabel').show();
-						$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-						$('#node-input-deviceId').show();
-
-						$('#node-input-applicationIdLabel').hide();
-						$('#node-input-allApplicationsLabel').hide();
-						$('#node-input-allApplications').hide();
-						$("#node-input-applicationId").val('');
-						$('#node-input-applicationId').hide();
-
-						document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-						$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-
-						$("#node-input-eventLabel").hide();
-						$("#node-input-allEvents").hide();
-						$("#node-input-allEventsLabel").hide();
-						$("#node-input-eventType").hide();
-
-						$("#node-input-commandLabel").hide();
-						$("#node-input-allCommands").hide();
-						$("#node-input-allCommandsLabel").hide();
-						$("#node-input-commandType").hide();
-
-						$("#node-input-formatLabel").hide();
-						$("#node-input-format").hide();
-						$("#node-input-allFormats").hide();
-						$("#node-input-allFormatsLabel").hide();
-						$("#node-input-deviceTypeLabel").show();
-						$("#node-input-deviceType").show();
-						$("#node-input-allDeviceTypes").show();
-						$("#node-input-allDeviceTypesLabel").show();
-
-						$("#node-input-allDevices").show();
-						$("#node-input-allDevicesLabel").show();
-					} else if (id == "cmd"){
-						$('#node-input-deviceIdLabel').show();
-						$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-						$('#node-input-deviceId').show();
-
-						$('#node-input-applicationIdLabel').hide();
-						$('#node-input-allApplicationsLabel').hide();
-						$('#node-input-allApplications').hide();
-						$("#node-input-applicationId").val('');
-						$('#node-input-applicationId').hide();
-
-						document.getElementById('node-input-eventLabel').innerHTML='<i class="fa fa-tasks"></i> Command';
-						document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-						$('#node-input-eventType').attr("placeholder", "command type e.g. blink");
-						$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-
-						$("#node-input-eventLabel").hide();
-						$("#node-input-allEvents").hide();
-						$("#node-input-allEventsLabel").hide();
-						$("#node-input-eventType").hide();
-
-
-						$("#node-input-commandLabel").show();
-						$("#node-input-allCommands").show();
-						$("#node-input-allCommandsLabel").show();
-						$("#node-input-commandType").show();
-
-
-						$("#node-input-formatLabel").show();
-						$("#node-input-format").show();
-						$("#node-input-allFormats").show();
-						$("#node-input-allFormatsLabel").show();
-						$("#node-input-deviceTypeLabel").show();
-						$("#node-input-deviceType").show();
-						$("#node-input-allDeviceTypes").show();
-						$("#node-input-allDeviceTypesLabel").show();
-
-						$("#node-input-allDevices").show();
-						$("#node-input-allDevicesLabel").show();
-					} else if (id == "appsts") {
-
-						$('#node-input-deviceIdLabel').hide();
-						$('#node-input-deviceId').hide();
-
-						$('#node-input-applicationIdLabel').show();
-						$('#node-input-allApplicationsLabel').show();
-						$('#node-input-allApplications').show();
-						$('#node-input-applicationId').show();
-
-						document.getElementById('node-input-applicationIdLabel').innerHTML='<i class="fa fa-tasks"></i> App Id</label>';
-						$('#node-input-applicationId').attr("placeholder", "app id e.g. myapp02");
-
-						$('#node-input-deviceId').attr("placeholder", "app id e.g. myapp02");
-
-						$("#node-input-eventLabel").hide();
-						$("#node-input-allEvents").hide();
-						$("#node-input-allEventsLabel").hide();
-						$("#node-input-eventType").hide();
-
-						$("#node-input-commandLabel").hide();
-						$("#node-input-allCommands").hide();
-						$("#node-input-allCommandsLabel").hide();
-						$("#node-input-commandType").hide();
-
-						$("#node-input-formatLabel").hide();
-						$("#node-input-format").hide();
-						$("#node-input-allFormats").hide();
-						$("#node-input-allFormatsLabel").hide();
-						$("#node-input-deviceTypeLabel").hide();
-						$("#node-input-deviceId").val('');
-						$("#node-input-deviceType").hide();
-						$("#node-input-allDeviceTypes").hide();
-						$("#node-input-allDeviceTypesLabel").hide();
-
-						$("#node-input-allDevices").hide();
-						$("#node-input-allDevicesLabel").hide();
-					} else {
-
-					}
-				});
-			}
-
-			$("#node-input-authentication").change(function() {
-				var serviceSelected = $("#node-input-authentication option:selected").val();
-
+			var configureCheckboxInputsQS = function() {
 				var allDevicesValue = $("#node-input-allDevices").is(":checked");
 				if( allDevicesValue) {
 					$("#node-input-deviceId").prop("disabled", false);
 				}
+
+				var allDeviceTypesValue = $("#node-input-allDeviceTypes").is(":checked");
+				if( allDeviceTypesValue) {
+					$("#node-input-deviceType").prop("disabled", false);
+				}
+
+				var allEventsValue = $("#node-input-allEvents").is(":checked");
+				if( allEventsValue) {
+					$("#node-input-eventType").prop("disabled", false);
+				}
+
+				var allFormatsValue = $("#node-input-allFormats").is(":checked");
+				if( allFormatsValue) {
+					$("#node-input-format").prop("disabled", false);
+				}
+
+				var inputTypeSelected = $("#node-input-inputType").val();
+				if( inputTypeSelected == "cmd") {
+					$("#node-input-inputType").val("evt");
+				}
+			}
+
+			var defaultShowInputs = function(serviceSelected) {
+				if( serviceSelected === "boundService" ) {
+					$("#node-input-apiKey-div").hide();
+				} else {
+					$("#node-input-apiKey-div").show();
+				}
+
+				$('#node-input-service').val(result);
+				$("#node-input-inputTypeCmd").show();
+				$("#node-input-inputTypeDeviceState").show();
+				$("#node-input-inputTypeDeviceStateErr").show();
+				$("#node-input-inputTypeRuleT").show();
+				$("#node-input-inputTypeRuleE").show();
+				$("#node-input-inputType").show();
+				$("#node-input-allDevicesLabel").show();
+				$("#node-input-allDevices").show();
+				$("#node-input-deviceTypeLabel").show();
+				$("#node-input-deviceType").show();
+				$("#node-input-allDeviceTypesLabel").show();
+				$("#node-input-allDeviceTypes").show();
+				$("#node-input-eventLabel").show();
+				$("#node-input-eventType").show();
+				$("#node-input-allEventsLabel").show();
+				$("#node-input-allEvents").show();
+				$("#node-input-formatLabel").show();
+				$("#node-input-format").show();
+				$("#node-input-allFormatsLabel").show();
+				$("#node-input-allFormats").show();
+				$("#node-form-qos-div").show();
+
+				$("#registeredTips").show();
+				$("#quickstartTips").hide();
+				onRuleSelectREG();
+			}
+
+			var defaultShowInputsQS = function() {
+				$('#node-input-service').val(result);
+
+				$("#node-input-inputTypeCmd").hide();
+				$("#node-input-inputTypeDeviceState").hide();
+				$("#node-input-inputTypeDeviceStateErr").hide();
+				$("#node-input-inputTypeRuleT").hide();
+				$("#node-input-inputTypeRuleE").hide();
+				$("#node-input-allDevicesLabel").hide();
+				$("#node-input-allDevices").prop("checked", false);
+				$("#node-input-allDevices").hide();
+
+				$("#node-input-allApplicationsLabel").hide();
+				$("#node-input-allApplications").prop("checked", false);
+				$("#node-input-allApplications").hide();
+
+				$("#node-input-deviceTypeLabel").hide();
+				$("#node-input-deviceType").val("+");
+				$("#node-input-deviceType").hide();
+				$("#node-input-allDeviceTypesLabel").hide();
+				$("#node-input-allDeviceTypes").prop("checked", true);
+				$("#node-input-allDeviceTypes").hide();
+				$("#node-input-eventLabel").hide();
+				$("#node-input-eventType").val("+");
+				$("#node-input-eventType").hide();
+				$("#node-input-allEventsLabel").hide();
+				$("#node-input-allEvents").prop("checked", true);
+				$("#node-input-allEvents").hide();
+				$("#node-input-formatLabel").hide();
+				$("#node-input-format").val("json");
+				$("#node-input-format").hide();
+				$("#node-input-allFormatsLabel").hide();
+				$("#node-input-allFormats").hide();
+
+				$("#node-input-commandLabel").hide();
+				$("#node-input-allCommands").hide();
+				$("#node-input-allCommandsLabel").hide();
+				$("#node-input-commandType").hide();
+
+				$("#registeredTips").hide();
+				$("#quickstartTips").show();
+			}
+
+			var configureInput = function() {
+				var id = $("#node-input-inputType").val();
+				if (id == "evt") {
+					onEvtSelectedREG();
+				} else if (id == "devsts"){
+					onDevStsSelectedREG();
+				} else if (id == "cmd"){
+					onCmdSelectedREG();
+				} else if (id == "appsts") {
+					onAppStsSelectedREG();
+				} else if (id == "ruletrig") {
+					onRuleSelectREG();
+				} else if (id == "ruleerr") {
+					onRuleSelectREG();
+				} else if (id == "devicestate"){
+					onDeviceStateSelectREG();
+				} else if (id == "devicestateerr"){
+					onDeviceStateErrSelectREG();
+				} else {
+
+				}
+			};
+
+			var configureInputQS = function() {
+				var id = $("#node-input-inputType").val();
+				if (id == "evt") {
+					onEvtSelectedQS();
+				}
+
+				if (id == "devsts") {
+					onDevStsSelectedQS();
+				}
+
+				if (id == "appsts") {
+					onAppStsSelectedQS();
+				}
+			};
+
+			result = "";
+
+			var noderedVersion = "";
+			$.getJSON('ibmiot/service?ts=' + Math.random(), function(data) {
+				var authnode = document.getElementById('node-input-authentication');
+				var bluemixnode = authnode.lastElementChild;
+
+				if(data.service !== 'registered') {
+					noderedVersion = data.version;
+
+					if(bluemixnode.id === 'node-input-bounded-innode') {
+						bluemixnode.remove();
+					}
+				}
+			});
+
+			var serviceSelected = $("#node-input-authentication").val();
+
+			if(serviceSelected === "quickstart") {
+				result = "quickstart";
+
+                $("#node-input-apiKey-div").hide();
+
+				configureInputQS();
+				defaultShowInputsQS();
+				configureCheckboxInputsQS();
+
+				$("#node-input-inputType").change(function() {
+					configureInputQS();
+				});
+
+                $("#node-form-qos-div").hide();
+			} else {
+
+				result = "registered";
+
+				defaultShowInputs(serviceSelected);
+				configureCheckBoxInputs();
+				configureInput();
+
+				$("#node-input-inputType").change(function() {
+					configureCheckBoxInputs();
+					configureInput();
+				});
+			}
+
+			$("#node-input-authentication").change(function() {
+				var serviceSelected = $("#node-input-authentication option:selected").val();				
 
 				if(serviceSelected === "quickstart") {
 					result = "quickstart";
 
 					$("#node-input-apiKey-div").hide();
 
-					var id = $("#node-input-inputType").val();
-					if (id == "evt") {
-						$('#node-input-deviceIdLabel').show();
-						$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-						$('#node-input-deviceId').show();
-
-						$('#node-input-applicationIdLabel').hide();
-						$("#node-input-applicationId").val('');
-						$('#node-input-applicationId').hide();
-
-						document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-						$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-					}
-
-					if (id == "devsts") {
-						$('#node-input-deviceIdLabel').show();
-						$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-						$('#node-input-deviceId').show();
-
-						$('#node-input-applicationIdLabel').hide();
-						$("#node-input-applicationId").val('');
-						$('#node-input-applicationId').hide();
-
-						document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-						$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-					}
-
-					if (id == "appsts") {
-						$('#node-input-deviceIdLabel').hide();
-						$("#node-input-deviceId").val('');
-						$('#node-input-deviceId').hide();
-
-						$('#node-input-applicationIdLabel').show();
-						$('#node-input-applicationId').show();
-
-						document.getElementById('node-input-applicationIdLabel').innerHTML='<i class="fa fa-tasks"></i> App Id</label>';
-						$('#node-input-applicationId').attr("placeholder", "app id e.g. myapp02");
-
-					}
-
-					$('#node-input-service').val(result);
-
-					$("#node-input-inputTypeCmd").hide();
-					$("#node-input-allDevicesLabel").hide();
-					$("#node-input-allDevices").prop("checked", false);
-					$("#node-input-allDevices").hide();
-
-					$("#node-input-allApplicationsLabel").hide();
-					$("#node-input-allApplications").prop("checked", false);
-					$("#node-input-allApplications").hide();
-
-					$("#node-input-deviceTypeLabel").hide();
-					$("#node-input-deviceType").val("+");
-					$("#node-input-deviceType").hide();
-					$("#node-input-allDeviceTypesLabel").hide();
-					$("#node-input-allDeviceTypes").prop("checked", true);
-					$("#node-input-allDeviceTypes").hide();
-					$("#node-input-eventLabel").hide();
-					$("#node-input-eventType").val("+");
-					$("#node-input-eventType").hide();
-					$("#node-input-allEventsLabel").hide();
-					$("#node-input-allEvents").prop("checked", true);
-					$("#node-input-allEvents").hide();
-					$("#node-input-formatLabel").hide();
-					$("#node-input-format").val("json");
-					$("#node-input-format").hide();
-					$("#node-input-allFormatsLabel").hide();
-					$("#node-input-allFormats").hide();
-                                        $("#node-form-qos-div").hide();
-
-					$("#node-input-commandLabel").hide();
-					$("#node-input-allCommands").hide();
-					$("#node-input-allCommandsLabel").hide();
-					$("#node-input-commandType").hide();
-
-					$("#registeredTips").hide();
-					$("#quickstartTips").show();
-
-					var allDevicesValue = $("#node-input-allDevices").is(":checked");
-					if( allDevicesValue) {
-						$("#node-input-deviceId").prop("disabled", false);
-					}
-
-					var allDeviceTypesValue = $("#node-input-allDeviceTypes").is(":checked");
-					if( allDeviceTypesValue) {
-						$("#node-input-deviceType").prop("disabled", false);
-					}
-
-					var allEventsValue = $("#node-input-allEvents").is(":checked");
-					if( allEventsValue) {
-						$("#node-input-eventType").prop("disabled", false);
-					}
-
-					var allFormatsValue = $("#node-input-allFormats").is(":checked");
-					if( allFormatsValue) {
-						$("#node-input-format").prop("disabled", false);
-					}
-
-					var inputTypeSelected = $("#node-input-inputType").val();
-					if( inputTypeSelected == "cmd") {
-						$("#node-input-inputType").val("evt");
-					}
-
+					configureInputQS();
+					defaultShowInputsQS();
+					configureCheckboxInputsQS();
 
 					$("#node-input-inputType").change(function() {
-						var id = $("#node-input-inputType option:selected").val();
-						if (id == "evt") {
-							$('#node-input-deviceIdLabel').show();
-							$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-							$('#node-input-deviceId').show();
-
-							$('#node-input-applicationIdLabel').hide();
-							$("#node-input-applicationId").val('');
-							$('#node-input-applicationId').hide();
-
-							document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-							$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-						}
-
-						if (id == "devsts") {
-							$('#node-input-deviceIdLabel').show();
-							$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-							$('#node-input-deviceId').show();
-
-							$('#node-input-applicationIdLabel').hide();
-							$("#node-input-applicationId").val('');
-							$('#node-input-applicationId').hide();
-
-							document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-							$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-						}
-
-						if (id == "appsts") {
-							$('#node-input-deviceIdLabel').hide();
-							$("#node-input-deviceId").val('');
-							$('#node-input-deviceId').hide();
-
-							$('#node-input-applicationIdLabel').show();
-							$('#node-input-applicationId').show();
-
-							document.getElementById('node-input-applicationIdLabel').innerHTML='<i class="fa fa-tasks"></i> App Id</label>';
-							$('#node-input-applicationId').attr("placeholder", "app id e.g. myapp02");
-						}
+						configureCheckBoxInputs();
+						configureInputQS();
 					});
 				} else {
 
 					result = "registered";
 
-					if( serviceSelected === "boundService" ) {
-						$("#node-input-apiKey-div").hide();
-					} else {
-						$("#node-input-apiKey-div").show();
-					}
-
-					$('#node-input-service').val(result);
-					$("#node-input-inputTypeCmd").show();
-					$("#node-input-inputType").show();
-					$("#node-input-allDevicesLabel").show();
-					$("#node-input-allDevices").show();
-					$("#node-input-deviceTypeLabel").show();
-					$("#node-input-deviceType").show();
-					$("#node-input-allDeviceTypesLabel").show();
-					$("#node-input-allDeviceTypes").show();
-					$("#node-input-eventLabel").show();
-					$("#node-input-eventType").show();
-					$("#node-input-allEventsLabel").show();
-					$("#node-input-allEvents").show();
-					$("#node-input-formatLabel").show();
-					$("#node-input-format").show();
-					$("#node-input-allFormatsLabel").show();
-					$("#node-input-allFormats").show();
-                                        $("#node-form-qos-div").show();
-
-					$("#registeredTips").show();
-					$("#quickstartTips").hide();
-
-					var allDevicesValue = $("#node-input-allDevices").is(":checked");
-					if( allDevicesValue) {
-						$("#node-input-deviceId").prop("disabled", true);
-					} else {
-						$("#node-input-deviceId").prop("disabled", false);
-					}
-					$("#node-input-allDevices").change(function() {
-						if($("#node-input-allDevices").is(":checked")) {
-							$("#node-input-deviceId").prop("disabled", true);
-						} else {
-							$("#node-input-deviceId").prop("disabled", false);
-						}
-					});
-
-					var allApplicationsValue = $("#node-input-allApplications").is(":checked");
-					if( allApplicationsValue) {
-						$("#node-input-applicationId").prop("disabled", true);
-					} else {
-						$("#node-input-applicationId").prop("disabled", false);
-					}
-					$("#node-input-allApplications").change(function() {
-						if($("#node-input-allApplications").is(":checked")) {
-							$("#node-input-applicationId").prop("disabled", true);
-						} else {
-							$("#node-input-applicationId").prop("disabled", false);
-						}
-					});
-
-					var allDeviceTypesValue = $("#node-input-allDeviceTypes").is(":checked");
-					if( allDeviceTypesValue) {
-						$("#node-input-deviceType").prop("disabled", true);
-					} else {
-						$("#node-input-deviceType").prop("disabled", false);
-					}
-					$("#node-input-allDeviceTypes").change(function() {
-						if($("#node-input-allDeviceTypes").is(":checked")) {
-							$("#node-input-deviceType").prop("disabled", true);
-						} else {
-							$("#node-input-deviceType").prop("disabled", false);
-						}
-					});
-
-					var allEventsValue = $("#node-input-allEvents").is(":checked");
-					if( allEventsValue) {
-						$("#node-input-eventType").prop("disabled", true);
-					} else {
-						$("#node-input-eventType").prop("disabled", false);
-					}
-					$("#node-input-allEvents").change(function() {
-						if($("#node-input-allEvents").is(":checked")) {
-							$("#node-input-eventType").prop("disabled", true);
-						} else {
-							$("#node-input-eventType").prop("disabled", false);
-						}
-					});
-
-					var allCommandsValue = $("#node-input-allCommands").is(":checked");
-					if( allCommandsValue) {
-						$("#node-input-commandType").prop("disabled", true);
-					} else {
-						$("#node-input-commandType").prop("disabled", false);
-					}
-					$("#node-input-allCommands").change(function() {
-						if($("#node-input-allCommands").is(":checked")) {
-							$("#node-input-commandType").prop("disabled", true);
-						} else {
-							$("#node-input-commandType").prop("disabled", false);
-						}
-					});
-
-					var allFormatsValue = $("#node-input-allFormats").is(":checked");
-					if( allFormatsValue) {
-						$("#node-input-format").prop("disabled", true);
-					} else {
-						$("#node-input-format").prop("disabled", false);
-					}
-					$("#node-input-allFormats").change(function() {
-						if($("#node-input-allFormats").is(":checked")) {
-							$("#node-input-format").prop("disabled", true);
-						} else {
-							$("#node-input-format").prop("disabled", false);
-						}
-					});
-
-					var id = $("#node-input-inputType").val();
-					if (id == "evt") {
-						$('#node-input-deviceIdLabel').show();
-						$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-						$('#node-input-deviceId').show();
-
-						$('#node-input-applicationIdLabel').hide();
-						$('#node-input-allApplicationsLabel').hide();
-						$('#node-input-allApplications').hide();
-						$("#node-input-applicationId").val('');
-						$('#node-input-applicationId').hide();
-
-						document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-						document.getElementById('node-input-eventLabel').innerHTML='<i class="fa fa-tasks"></i> Event';
-						$('#node-input-eventType').attr("placeholder", "event type e.g. status");
-						$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-
-						$("#node-input-eventLabel").show();
-						$("#node-input-allEvents").show();
-						$("#node-input-allEventsLabel").show();
-						$("#node-input-eventType").show();
-
-						$("#node-input-commandLabel").hide();
-						$("#node-input-allCommands").hide();
-						$("#node-input-allCommandsLabel").hide();
-						$("#node-input-commandType").hide();
-
-						$("#node-input-formatLabel").show();
-						$("#node-input-format").show();
-						$("#node-input-allFormats").show();
-						$("#node-input-allFormatsLabel").show();
-						$("#node-input-deviceTypeLabel").show();
-						$("#node-input-deviceType").show();
-						$("#node-input-allDeviceTypes").show();
-						$("#node-input-allDeviceTypesLabel").show();
-
-						$("#node-input-allDevices").show();
-						$("#node-input-allDevicesLabel").show();
-
-					} else if (id == "devsts"){
-						$('#node-input-deviceIdLabel').show();
-						$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-						$('#node-input-deviceId').show();
-
-						$('#node-input-applicationIdLabel').hide();
-						$('#node-input-allApplicationsLabel').hide();
-						$('#node-input-allApplications').hide();
-						$("#node-input-applicationId").val('');
-						$('#node-input-applicationId').hide();
-
-						document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-						$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-
-						$("#node-input-eventLabel").hide();
-						$("#node-input-allEvents").hide();
-						$("#node-input-allEventsLabel").hide();
-						$("#node-input-eventType").hide();
-
-						$("#node-input-commandLabel").hide();
-						$("#node-input-allCommands").hide();
-						$("#node-input-allCommandsLabel").hide();
-						$("#node-input-commandType").hide();
-
-						$("#node-input-formatLabel").hide();
-						$("#node-input-format").hide();
-						$("#node-input-allFormats").hide();
-						$("#node-input-allFormatsLabel").hide();
-						$("#node-input-deviceTypeLabel").show();
-						$("#node-input-deviceType").show();
-						$("#node-input-allDeviceTypes").show();
-						$("#node-input-allDeviceTypesLabel").show();
-
-						$("#node-input-allDevices").show();
-						$("#node-input-allDevicesLabel").show();
-					} else if (id == "cmd"){
-						$('#node-input-deviceIdLabel').show();
-						$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-						$('#node-input-deviceId').show();
-
-						$('#node-input-applicationIdLabel').hide();
-						$('#node-input-allApplicationsLabel').hide();
-						$('#node-input-allApplications').hide();
-						$("#node-input-applicationId").val('');
-						$('#node-input-applicationId').hide();
-
-						document.getElementById('node-input-eventLabel').innerHTML='<i class="fa fa-tasks"></i> Command';
-						document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-						$('#node-input-eventType').attr("placeholder", "command type e.g. blink");
-						$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-
-
-						$("#node-input-eventLabel").hide();
-						$("#node-input-allEvents").hide();
-						$("#node-input-allEventsLabel").hide();
-						$("#node-input-eventType").hide();
-
-						$("#node-input-commandLabel").show();
-						$("#node-input-allCommands").show();
-						$("#node-input-allCommandsLabel").show();
-						$("#node-input-commandType").show();
-
-						$("#node-input-formatLabel").show();
-						$("#node-input-format").show();
-						$("#node-input-allFormats").show();
-						$("#node-input-allFormatsLabel").show();
-						$("#node-input-deviceTypeLabel").show();
-						$("#node-input-deviceType").show();
-						$("#node-input-allDeviceTypes").show();
-						$("#node-input-allDeviceTypesLabel").show();
-
-						$("#node-input-allDevices").show();
-						$("#node-input-allDevicesLabel").show();
-					} else if (id == "appsts") {
-
-						$('#node-input-deviceIdLabel').hide();
-						$("#node-input-deviceId").val('');
-						$('#node-input-deviceId').hide();
-
-						$('#node-input-applicationIdLabel').show();
-						$('#node-input-allApplicationsLabel').show();
-						$('#node-input-allApplications').show();
-						$('#node-input-applicationId').show();
-
-						$("#node-input-commandLabel").hide();
-						$("#node-input-allCommands").hide();
-						$("#node-input-allCommandsLabel").hide();
-						$("#node-input-commandType").hide();
-
-						document.getElementById('node-input-applicationIdLabel').innerHTML='<i class="fa fa-tasks"></i> App Id</label>';
-						$('#node-input-applicationId').attr("placeholder", "app id e.g. myapp02");
-
-						$("#node-input-eventLabel").hide();
-						$("#node-input-allEvents").hide();
-						$("#node-input-allEventsLabel").hide();
-						$("#node-input-eventType").hide();
-
-						$("#node-input-formatLabel").hide();
-						$("#node-input-format").hide();
-						$("#node-input-allFormats").hide();
-						$("#node-input-allFormatsLabel").hide();
-						$("#node-input-deviceTypeLabel").hide();
-						$("#node-input-deviceType").hide();
-						$("#node-input-allDeviceTypes").hide();
-						$("#node-input-allDeviceTypesLabel").hide();
-
-						$("#node-input-allDevices").hide();
-						$("#node-input-allDevicesLabel").hide();
-
-					} else {
-
-					}
+					defaultShowInputs(serviceSelected);
+					configureCheckBoxInputs();
+					configureInput();
 
 					$("#node-input-inputType").change(function() {
-						var id = $("#node-input-inputType option:selected").val();
-						if (id == "evt") {
-							$('#node-input-deviceIdLabel').show();
-							$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-							$('#node-input-deviceId').show();
-
-							$('#node-input-applicationIdLabel').hide();
-							$('#node-input-allApplicationsLabel').hide();
-							$('#node-input-allApplications').hide();
-							$("#node-input-applicationId").val('');
-							$('#node-input-applicationId').hide();
-
-							document.getElementById('node-input-eventLabel').innerHTML='<i class="fa fa-tasks"></i> Event';
-							document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-							$('#node-input-eventType').attr("placeholder", "event type e.g. status");
-							$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-
-							$("#node-input-eventLabel").show();
-							$("#node-input-allEvents").show();
-							$("#node-input-allEventsLabel").show();
-							$("#node-input-eventType").show();
-
-							$("#node-input-commandLabel").hide();
-							$("#node-input-allCommands").hide();
-							$("#node-input-allCommandsLabel").hide();
-							$("#node-input-commandType").hide();
-
-							$("#node-input-formatLabel").show();
-							$("#node-input-format").show();
-							$("#node-input-allFormats").show();
-							$("#node-input-allFormatsLabel").show();
-							$("#node-input-deviceTypeLabel").show();
-							$("#node-input-deviceType").show();
-							$("#node-input-allDeviceTypes").show();
-							$("#node-input-allDeviceTypesLabel").show();
-
-							$("#node-input-allDevices").show();
-							$("#node-input-allDevicesLabel").show();
-
-						} else if (id == "devsts"){
-							$('#node-input-deviceIdLabel').show();
-							$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-							$('#node-input-deviceId').show();
-
-							$('#node-input-applicationIdLabel').hide();
-							$('#node-input-allApplicationsLabel').hide();
-							$('#node-input-allApplications').hide();
-							$("#node-input-applicationId").val('');
-							$('#node-input-applicationId').hide();
-
-							document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-							$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-
-							$("#node-input-eventLabel").hide();
-							$("#node-input-allEvents").hide();
-							$("#node-input-allEventsLabel").hide();
-							$("#node-input-eventType").hide();
-
-							$("#node-input-commandLabel").hide();
-							$("#node-input-allCommands").hide();
-							$("#node-input-allCommandsLabel").hide();
-							$("#node-input-commandType").hide();
-
-							$("#node-input-formatLabel").hide();
-							$("#node-input-format").hide();
-							$("#node-input-allFormats").hide();
-							$("#node-input-allFormatsLabel").hide();
-							$("#node-input-deviceTypeLabel").show();
-							$("#node-input-deviceType").show();
-							$("#node-input-allDeviceTypes").show();
-							$("#node-input-allDeviceTypesLabel").show();
-
-							$("#node-input-allDevices").show();
-							$("#node-input-allDevicesLabel").show();
-						} else if (id == "cmd"){
-							$('#node-input-deviceIdLabel').show();
-							$("#node-input-deviceId").val($("#node-input-deviceId").val().trim().replace(/[^a-zA-Z0-9_\.\-]/gi, ""));
-							$('#node-input-deviceId').show();
-
-							$('#node-input-applicationIdLabel').hide();
-							$('#node-input-allApplicationsLabel').hide();
-							$('#node-input-allApplications').hide();
-							$("#node-input-applicationId").val('');
-							$('#node-input-applicationId').hide();
-
-							document.getElementById('node-input-eventLabel').innerHTML='<i class="fa fa-tasks"></i> Command';
-							document.getElementById('node-input-deviceIdLabel').innerHTML='<i class="fa fa-street-view"></i> Device Id</label>';
-							$('#node-input-eventType').attr("placeholder", "command type e.g. blink");
-							$('#node-input-deviceId').attr("placeholder", "device id e.g. ab12cd231a21");
-
-							$("#node-input-eventLabel").hide();
-							$("#node-input-allEvents").hide();
-							$("#node-input-allEventsLabel").hide();
-							$("#node-input-eventType").hide();
-
-							$("#node-input-commandLabel").show();
-							$("#node-input-allCommands").show();
-							$("#node-input-allCommandsLabel").show();
-							$("#node-input-commandType").show();
-
-							$("#node-input-formatLabel").show();
-							$("#node-input-format").show();
-							$("#node-input-allFormats").show();
-							$("#node-input-allFormatsLabel").show();
-							$("#node-input-deviceTypeLabel").show();
-							$("#node-input-deviceType").show();
-							$("#node-input-allDeviceTypes").show();
-							$("#node-input-allDeviceTypesLabel").show();
-
-							$("#node-input-allDevices").show();
-							$("#node-input-allDevicesLabel").show();
-						} else if (id == "appsts") {
-
-							$('#node-input-deviceIdLabel').hide();
-							$('#node-input-deviceId').hide();
-
-							$('#node-input-applicationIdLabel').show();
-							$('#node-input-allApplicationsLabel').show();
-							$('#node-input-allApplications').show();
-							$('#node-input-applicationId').show();
-
-							document.getElementById('node-input-applicationIdLabel').innerHTML='<i class="fa fa-tasks"></i> App Id</label>';
-							$('#node-input-applicationId').attr("placeholder", "app id e.g. myapp02");
-
-							$('#node-input-deviceId').attr("placeholder", "app id e.g. myapp02");
-
-							$("#node-input-eventLabel").hide();
-							$("#node-input-allEvents").hide();
-							$("#node-input-allEventsLabel").hide();
-							$("#node-input-eventType").hide();
-
-							$("#node-input-commandLabel").hide();
-							$("#node-input-allCommands").hide();
-							$("#node-input-allCommandsLabel").hide();
-							$("#node-input-commandType").hide();
-
-							$("#node-input-formatLabel").hide();
-							$("#node-input-format").hide();
-							$("#node-input-allFormats").hide();
-							$("#node-input-allFormatsLabel").hide();
-							$("#node-input-deviceTypeLabel").hide();
-							$("#node-input-deviceId").val('');
-							$("#node-input-deviceType").hide();
-							$("#node-input-allDeviceTypes").hide();
-							$("#node-input-allDeviceTypesLabel").hide();
-
-							$("#node-input-allDevices").hide();
-							$("#node-input-allDevicesLabel").hide();
-						} else {
-
-						}
+						configureCheckBoxInputs();
+						configureInput();
 					});
 				}
 

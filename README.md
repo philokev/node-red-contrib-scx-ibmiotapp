@@ -35,12 +35,16 @@ Usage
 
 In case of Registered flow, the App In node can be used to 
 
-1. Receive device events, 
-2. Receive device status, 
-3. Receive device commands, on the behalf of a device, and 
-4. Receive application status.  
+1. Receive device events,
+2. Reveive device state update events,
+3. Receive device state error events,
+4. Receive rule trigger events,
+5. Receive rule error events,
+6. Receive device status,
+7. Receive device commands, on the behalf of a device, and
+8. Receive application status.
 
-In case of Quickstart flow, the App In node can be used to  
+In case of Quickstart flow, the App In node can be used to
 
 1. Receive device events, 
 2. Receive device status and 
