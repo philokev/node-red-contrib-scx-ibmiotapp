@@ -103,6 +103,10 @@ module.exports = function(RED) {
 	}
 	*/
 
+	else {
+		credentials = process.env.IOTF_SERVICE.credentials;
+	}
+
 	RED.httpAdmin.get('/ibmiot/service', function(req,res) {
 		if (credentials) {
 			res.send(JSON.stringify({service:'registered', version: RED.version() }));
