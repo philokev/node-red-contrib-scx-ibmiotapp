@@ -23,7 +23,7 @@
         "readmeFilename": "README.md",
         "repository": {
                 "type": "git",
-                "url": "https://github.com/ibm-watson-iot/node-red-contrib-scx-ibmiotapp"
+                "url": "https://github.com/philokev/node-red-contrib-scx-ibmiotapp"
         },
         "license": "Apache",
         "node-red": {
